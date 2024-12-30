@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Parkrun Event Locations</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -15,11 +15,15 @@
             font-size: 16px;
             color: red;
         }
+
+    body {
+      background: #242424;
+    }
     </style>
 </head>
 <body>
 
-    <h1>Parkrun Event Locations</h1>
+    <h1>Results</h1>
     <div id="map"></div>
     <div id="message"></div> <!-- Display messages like no locations found -->
 
