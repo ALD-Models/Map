@@ -7,36 +7,58 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #242424;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
         #map {
-            height: 600px;
+            height: calc(100% - 60px); /* Adjust height to account for the header */
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #f0f0f0;
         }
         #message {
-            margin-top: 20px;
+            margin-top: 10px;
+            text-align: center;
             font-size: 16px;
             color: red;
         }
-
-    body {
-      background: #242424;
-    }
     </style>
 </head>
 <body>
-
     <h1>Results</h1>
     <div id="map"></div>
     <div id="message"></div> <!-- Display messages like no locations found -->
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <script>
-        // Initialize the map
-        const map = L.map('map').setView([51.410992, -0.335791], 6);  // Default to UK area
 
-        // Add tile layer to the map (OpenStreetMap tiles)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    <script>
+        // Initialize the map with improved settings
+        const map = L.map('map', {
+            center: [0, 0], // Center on the equator and prime meridian
+            zoom: 2, // Default zoom level
+            zoomControl: true, // Enable zoom control
+            maxBounds: [
+                [-90, -180], // Southwest corner of the map
+                [90, 180] // Northeast corner of the map
+            ],
+            maxBoundsViscosity: 1.0, // Restrict dragging outside bounds
+            minZoom: 2, // Prevent zooming out too far
+            worldCopyJump: false // Prevent map wrapping
+        });
+
+        // Add a Carto Voyager tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19
         }).addTo(map);
 
         // Function to get event names from the URL query
@@ -102,6 +124,5 @@
                 document.getElementById('message').innerText = 'Error loading event data.';
             });
     </script>
-
 </body>
 </html>
