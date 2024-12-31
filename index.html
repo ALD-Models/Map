@@ -6,6 +6,9 @@
     <title>Parkrun Event Locations</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         html, body {
             margin: 0;
@@ -38,14 +41,16 @@
     <div id="message"></div> <!-- Display messages like no locations found -->
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/jquery/dist/jquery.min.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
     <script>
         // Initialize the map with improved settings
         const map = L.map('map', {
             center: [0, 0], // Center on the equator and prime meridian
             zoom: 2, // Default zoom level
-            zoomControl: true, // Enable zoom control
+            zoomControl: false, // Disable zoom control buttons
             maxBounds: [
                 [-90, -180], // Southwest corner of the map
                 [90, 180] // Northeast corner of the map
@@ -84,6 +89,9 @@
 
                 let locationsFound = false; // Flag to check if any locations were found
 
+                // Initialize the MarkerCluster group
+                const markers = L.markerClusterGroup();
+
                 // Iterate over the features and check if the event matches any of the provided event names
                 data.events.features.forEach(event => {
                     const { coordinates } = event.geometry;
@@ -104,7 +112,7 @@
                             if (eventDisplayName.includes(eventName)) {
                                 console.log('Event matched:', eventDisplayName);  // Debugging output
                                 // Create a marker for each matching event
-                                const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
+                                const marker = L.marker([coordinates[1], coordinates[0]]).addTo(markers);
 
                                 // Bind a popup with the event's information
                                 marker.bindPopup(`
@@ -117,6 +125,9 @@
                         });
                     });
                 });
+
+                // Add all markers to the map within the cluster
+                map.addLayer(markers);
 
                 // If no matching locations were found, display a message
                 if (!locationsFound) {
