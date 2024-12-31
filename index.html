@@ -2,37 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Parkrun Event Locations</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #242424;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
         #map {
-            height: 600px;
+            height: calc(100% - 60px); /* Adjust height to account for the header */
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #f0f0f0;
         }
         #message {
-            margin-top: 20px;
+            margin-top: 10px;
+            text-align: center;
             font-size: 16px;
             color: red;
         }
     </style>
 </head>
 <body>
-
-    <h1>Parkrun Event Locations</h1>
+    <h1>Results</h1>
     <div id="map"></div>
     <div id="message"></div> <!-- Display messages like no locations found -->
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <script>
-        // Initialize the map
-        const map = L.map('map').setView([51.410992, -0.335791], 6);  // Default to UK area
 
-        // Add tile layer to the map (OpenStreetMap tiles)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    <script>
+        // Initialize the map with improved settings
+        const map = L.map('map', {
+            center: [0, 0], // Center on the equator and prime meridian
+            zoom: 2, // Default zoom level
+            zoomControl: true, // Enable zoom control
+            maxBounds: [
+                [-90, -180], // Southwest corner of the map
+                [90, 180] // Northeast corner of the map
+            ],
+            maxBoundsViscosity: 1.0, // Restrict dragging outside bounds
+            minZoom: 2, // Prevent zooming out too far
+            worldCopyJump: false // Prevent map wrapping
+        });
+
+        // Add a Carto Voyager tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19
         }).addTo(map);
 
         // Function to get event names from the URL query
@@ -40,36 +66,19 @@
             const urlParams = new URLSearchParams(window.location.search);
             const eventsParam = urlParams.get('events'); // Get the 'events' parameter
             if (!eventsParam) return [];
-            return eventsParam.split(',').map(event => normalizeName(event));
-        }
-
-        // Normalize event names (lowercase, remove extra spaces, hyphens, and "parkrun")
-        function normalizeName(name) {
-            return name
-                .toLowerCase()
-                .replace(/\s+/g, ' ')       // Replace multiple spaces with a single space
-                .replace(/[-]/g, ' ')       // Replace hyphens with spaces
-                .replace(/parkrun/g, '')    // Remove the word "parkrun"
-                .trim();                    // Trim leading and trailing spaces
+            return eventsParam.split(',').map(event => event.trim().toLowerCase()); // Split by comma, trim, and convert to lowercase
         }
 
         // Fetch the JSON data from the raw GitHub link
         fetch('https://raw.githubusercontent.com/ALD-Models/Testing/refs/heads/main/events1.json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 const eventNames = getEventNamesFromURL();  // Extract event names from URL
-
-                // Debugging output
-                console.log('Events from URL:', eventNames);
+                console.log('Events from URL:', eventNames);  // Debugging output
 
                 // If no events are provided in the URL, show an alert
                 if (eventNames.length === 0) {
-                    document.getElementById('message').innerText = 'Please provide event names in the URL query.';
+                    alert('Please provide event names in the URL query.');
                     return;
                 }
 
@@ -78,32 +87,35 @@
                 // Iterate over the features and check if the event matches any of the provided event names
                 data.events.features.forEach(event => {
                     const { coordinates } = event.geometry;
-                    const { EventLongName, EventLocation, EventShortName, eventname } = event.properties;
+                    const { EventLongName, EventLocation, EventShortName } = event.properties;
 
-                    // Normalize all event names for comparison
-                    const normalizedEventNames = [
-                        normalizeName(eventname),
-                        normalizeName(EventShortName),
-                        normalizeName(EventLongName)
+                    // Normalize all event name properties and compare
+                    const eventNamesArray = [
+                        EventShortName.toLowerCase(),
+                        EventLongName.toLowerCase(),
+                        (event.properties.eventname || "").toLowerCase() // Assuming eventname is also a property of event
                     ];
 
-                    console.log('Checking event:', normalizedEventNames);  // Debugging output
+                    console.log('Checking event:', eventNamesArray);  // Debugging output
 
-                    // Check if any of the normalized event names match any of the event names from the URL
-                    if (eventNames.some(eventName => normalizedEventNames.includes(eventName))) {
-                        console.log('Event matched:', normalizedEventNames);  // Debugging output
-                        
-                        // Create a marker for each matching event
-                        const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
+                    // Compare event name to the provided names from the URL
+                    eventNames.forEach(eventName => {
+                        eventNamesArray.forEach(eventDisplayName => {
+                            if (eventDisplayName.includes(eventName)) {
+                                console.log('Event matched:', eventDisplayName);  // Debugging output
+                                // Create a marker for each matching event
+                                const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
 
-                        // Bind a popup with the event's information
-                        marker.bindPopup(`
-                            <strong>${EventLongName}</strong><br>
-                            Location: ${EventLocation}
-                        `);
-
-                        locationsFound = true; // Set flag to true if a match is found
-                    }
+                                // Bind a popup with the event's information
+                                marker.bindPopup(`
+                                    <strong>${EventLongName}</strong><br>
+                                    Location: ${EventLocation}
+                                `);
+                                
+                                locationsFound = true; // Set flag to true if a match is found
+                            }
+                        });
+                    });
                 });
 
                 // If no matching locations were found, display a message
@@ -115,9 +127,8 @@
             })
             .catch(error => {
                 console.error('Error loading the JSON data:', error);
-                document.getElementById('message').innerText = 'Error loading event data. Please check the console for more details.';
+                document.getElementById('message').innerText = 'Error loading event data.';
             });
     </script>
-
 </body>
 </html>
