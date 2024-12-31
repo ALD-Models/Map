@@ -78,15 +78,15 @@
                 // Iterate over the features and check if the event matches any of the provided event names
                 data.events.features.forEach(event => {
                     const { coordinates } = event.geometry;
-                    const { EventLongName, EventLocation, EventShortName } = event.properties;
+                    const { EventLongName, EventLocation, EventShortName, eventname } = event.properties;
 
                     // Normalize event name for comparison
-                    const eventDisplayName = normalizeName(EventShortName);
+                    const eventDisplayName = normalizeName(eventname || EventShortName);
 
                     console.log('Checking event:', eventDisplayName);  // Debugging output
 
                     // Check for matching events
-                    if (eventNames.some(eventName => eventDisplayName.includes(eventName))) {
+                    if (eventNames.some(eventName => eventDisplayName === eventName)) {
                         console.log('Event matched:', eventDisplayName);  // Debugging output
                         
                         // Create a marker for each matching event
