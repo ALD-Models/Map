@@ -80,14 +80,18 @@
                     const { coordinates } = event.geometry;
                     const { EventLongName, EventLocation, EventShortName, eventname } = event.properties;
 
-                    // Normalize event name for comparison
-                    const eventDisplayName = normalizeName(eventname || EventShortName);
+                    // Normalize all event names for comparison
+                    const normalizedEventNames = [
+                        normalizeName(eventname),
+                        normalizeName(EventShortName),
+                        normalizeName(EventLongName)
+                    ];
 
-                    console.log('Checking event:', eventDisplayName);  // Debugging output
+                    console.log('Checking event:', normalizedEventNames);  // Debugging output
 
-                    // Check for matching events
-                    if (eventNames.some(eventName => eventDisplayName === eventName)) {
-                        console.log('Event matched:', eventDisplayName);  // Debugging output
+                    // Check if any of the normalized event names match any of the event names from the URL
+                    if (eventNames.some(eventName => normalizedEventNames.includes(eventName))) {
+                        console.log('Event matched:', normalizedEventNames);  // Debugging output
                         
                         // Create a marker for each matching event
                         const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
