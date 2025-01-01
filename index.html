@@ -167,6 +167,7 @@
 
                 let locationsFound = false;
                 const markers = L.markerClusterGroup();
+                const processedEvents = new Set(); // Set to track already processed events
 
                 data.events.features.forEach(event => {
                     const { coordinates } = event.geometry;
@@ -177,6 +178,10 @@
                         EventLongName.toLowerCase(),
                         (event.properties.eventname || "").toLowerCase()
                     ];
+
+                    // Check if this event has already been processed to avoid duplication
+                    const eventKey = `${EventLongName.toLowerCase()}-${EventLocation.toLowerCase()}`;
+                    if (processedEvents.has(eventKey)) return;
 
                     eventNames.forEach(eventName => {
                         eventNamesArray.forEach(eventDisplayName => {
@@ -190,6 +195,9 @@
                             }
                         });
                     });
+
+                    // Mark the event as processed
+                    processedEvents.add(eventKey);
                 });
 
                 map.addLayer(markers);
