@@ -179,25 +179,21 @@
                         (event.properties.eventname || "").toLowerCase()
                     ];
 
-                    // Check if this event has already been processed to avoid duplication
-                    const eventKey = `${EventLongName.toLowerCase()}-${EventLocation.toLowerCase()}`;
-                    if (processedEvents.has(eventKey)) return;
+                    // Check if any of the event names match
+                    const isMatch = eventNames.some(eventName =>
+                        eventNamesArray.some(eventDisplayName => eventDisplayName.includes(eventName))
+                    );
 
-                    eventNames.forEach(eventName => {
-                        eventNamesArray.forEach(eventDisplayName => {
-                            if (eventDisplayName.includes(eventName)) {
-                                const marker = L.marker([coordinates[1], coordinates[0]]).addTo(markers);
-                                marker.bindPopup(`
-                                    <strong>${EventLongName}</strong><br>
-                                    Location: ${EventLocation}
-                                `);
-                                locationsFound = true;
-                            }
-                        });
-                    });
-
-                    // Mark the event as processed
-                    processedEvents.add(eventKey);
+                    // If it matches and hasn't been added before, add the marker
+                    if (isMatch && !processedEvents.has(EventLongName)) {
+                        const marker = L.marker([coordinates[1], coordinates[0]]).addTo(markers);
+                        marker.bindPopup(`
+                            <strong>${EventLongName}</strong><br>
+                            Location: ${EventLocation}
+                        `);
+                        locationsFound = true;
+                        processedEvents.add(EventLongName); // Mark the event as processed
+                    }
                 });
 
                 map.addLayer(markers);
