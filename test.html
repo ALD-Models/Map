@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #228B22;
+            color: #ffffff;
+            font-family: 'Roboto', Arial, sans-serif;
+            overflow: hidden; /* Prevent scrolling */
+        }
+        #map {
+            height: 100%; /* Stretch the map to fill the entire height */
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin: 10px 0;
+            color: #f0f0f0;
+        }
+        #ai-response {
+            text-align: center;
+            font-size: 18px;
+            color: #ffffff;
+            margin: 10px 0;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Roboto', Arial, sans-serif;
+        }
+        .typing {
+            width: 10px;
+            height: 10px;
+            margin: 0 2px;
+            background: #ffffff;
+            border-radius: 50%;
+            animation: blink 1.2s infinite;
+        }
+        .typing:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% {
+                opacity: 0;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+        }
+        #loading img {
+            width: 50px;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Results</h1>
+    <div id="ai-response">
+        <div class="typing"></div>
+        <div class="typing"></div>
+        <div class="typing"></div>
+    </div>
+    <div id="loading">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif" alt="Loading...">
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/jquery/dist/jquery.min.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        const aiResponse = document.getElementById('ai-response');
+        const loading = document.getElementById('loading');
+
+        // Function to simulate typing animation
+        function showTyping() {
+            aiResponse.innerHTML = ` 
+                <div class="typing"></div>
+                <div class="typing"></div>
+                <div class="typing"></div>`;
+        }
+
+        // Function to display a message
+        function displayMessage(message, delay = 1000) {
+            showTyping();
+            setTimeout(() => {
+                aiResponse.innerText = message;
+            }, delay);
+        }
+
+        // Show loading icon
+        function showLoading() {
+            loading.style.display = 'block';
+        }
+
+        // Hide loading icon
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        // Initialize the map with improved settings
+        const map = L.map('map', {
+            center: [0, 0],
+            zoom: 2,
+            zoomControl: false,
+            maxBounds: [
+                [-90, -180],
+                [90, 180]
+            ],
+            maxBoundsViscosity: 1.0,
+            minZoom: 2,
+            worldCopyJump: false,
+            attributionControl: false // Remove attribution control
+        });
+
+        // Add a Carto Voyager tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Function to get event names from the URL query
+        function getEventNamesFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventsParam = urlParams.get('events');
+            if (!eventsParam) return [];
+            return eventsParam.split(',').map(event => event.trim().toLowerCase());
+        }
+
+        // Fetch the JSON data
+        showLoading();
+        fetch('https://raw.githubusercontent.com/ALD-Models/Testing/refs/heads/main/events1.json')
+            .then(response => response.json())
+            .then(data => {
+                const eventNames = getEventNamesFromURL();
+
+                if (eventNames.length === 0) {
+                    hideLoading();
+                    displayMessage('Apologies, I couldn\'t find anything that matches.', 500);
+                    return;
+                }
+
+                let locationsFound = false;
+                const markers = L.markerClusterGroup();
+                const processedEvents = new Set(); // Set to track already processed events
+
+                data.events.features.forEach(event => {
+                    const { coordinates } = event.geometry;
+                    const { EventLongName, EventLocation, EventShortName } = event.properties;
+
+                    const eventNamesArray = [
+                        EventShortName.toLowerCase(),
+                        EventLongName.toLowerCase(),
+                        (event.properties.eventname || "").toLowerCase()
+                    ];
+
+                    // Check if any of the event names match
+                    const isMatch = eventNames.some(eventName =>
+                        eventNamesArray.some(eventDisplayName => eventDisplayName.includes(eventName))
+                    );
+
+                    // If it matches and hasn't been added before, add the marker
+                    if (isMatch && !processedEvents.has(EventLongName)) {
+                        // Determine the icon based on EventLongName
+                        const iconURL = EventLongName.toLowerCase().includes("junior") 
+                            ? "https://raw.githubusercontent.com/ALD-Models/Testing/main/Icons/Junior.png"
+                            : "https://raw.githubusercontent.com/ALD-Models/Testing/main/Icons/5k.png";
+
+                        const customIcon = L.icon({
+                            iconUrl: iconURL,
+                            iconSize: [32, 32],  // Set the size of the icon
+                            iconAnchor: [16, 32],  // Anchor to the bottom of the icon
+                            popupAnchor: [0, -32]  // Popup opens above the marker
+                        });
+
+                        const marker = L.marker([coordinates[1], coordinates[0]], { icon: customIcon }).addTo(markers);
+                        marker.bindPopup(`
+                            <strong>${EventLongName}</strong><br>
+                            Location: ${EventLocation}
+                        `);
+                        locationsFound = true;
+                        processedEvents.add(EventLongName); // Mark the event as processed
+                    }
+                });
+
+                map.addLayer(markers);
+                hideLoading();
+
+                if (!locationsFound) {
+                    displayMessage('Apologies, I couldn\'t find anything that matches.', 1500);
+                } else {
+                    displayMessage('Here are some results that should match.', 1500);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading the JSON data:', error);
+                hideLoading();
+                displayMessage('Error loading event data.', 1500);
+            });
+    </script>
+</body>
+</html>
