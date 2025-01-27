@@ -168,6 +168,14 @@
                 const markers = L.markerClusterGroup();
                 const processedEvents = new Set(); // Set to track already processed events
 
+                // Define a custom icon
+                const customIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/ALD-Models/Testing/main/Icons/Chat.png', // URL to the image
+                    iconSize: [32, 32], // Set the size of the icon
+                    iconAnchor: [16, 32], // Set the anchor point of the icon
+                    popupAnchor: [0, -32] // Set the position of the popup relative to the icon
+                });
+
                 data.events.features.forEach(event => {
                     const { coordinates } = event.geometry;
                     const { EventLongName, EventLocation, EventShortName } = event.properties;
@@ -183,9 +191,9 @@
                         eventNamesArray.some(eventDisplayName => eventDisplayName.includes(eventName))
                     );
 
-                    // If it matches and hasn't been added before, add the marker
+                    // If it matches and hasn't been added before, add the marker with the custom icon
                     if (isMatch && !processedEvents.has(EventLongName)) {
-                        const marker = L.marker([coordinates[1], coordinates[0]]).addTo(markers);
+                        const marker = L.marker([coordinates[1], coordinates[0]], { icon: customIcon }).addTo(markers);
                         marker.bindPopup(`
                             <strong>${EventLongName}</strong><br>
                             Location: ${EventLocation}
